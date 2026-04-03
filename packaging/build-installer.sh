@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# EasyDockCross 自解压安装包构建脚本
+# EasyDockCross 自解压安装包构建脚本（默认使用 uv）
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -19,28 +19,22 @@ echo "构建 EasyDockCross 安装包"
 echo "版本: $VERSION"
 echo "========================================"
 
+# 检查 uv
+if ! command -v uv >/dev/null 2>&1; then
+    echo "错误: 未找到 uv。请安装 uv:"
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+    exit 1
+fi
+
 # 清理并创建构建目录
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 mkdir -p "$DIST_DIR"
 
-# 检查虚拟环境创建能力
-if ! python3 -m venv "$BUILD_DIR/venv-test" >/dev/null 2>&1; then
-    PY_MINOR=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-    echo "错误: 当前 Python 无法创建虚拟环境。"
-    echo "请安装对应包: sudo apt-get install -y python${PY_MINOR}-venv"
-    rm -rf "$BUILD_DIR"
-    exit 1
-fi
-rm -rf "$BUILD_DIR/venv-test"
-
 # 1. 创建 Python 虚拟环境并安装依赖
-echo "[1/5] 安装 Python 依赖到构建目录..."
-python3 -m venv "$BUILD_DIR/venv"
-source "$BUILD_DIR/venv/bin/activate"
-pip install -q --upgrade pip
-pip install -q -r "$PROJECT_ROOT/requirements.txt"
-deactivate
+echo "[1/5] 安装 Python 依赖到构建目录 (uv)..."
+uv venv "$BUILD_DIR/venv"
+uv pip install -q -r "$PROJECT_ROOT/requirements.txt" --python "$BUILD_DIR/venv/bin/python"
 
 # 2. 复制应用文件
 echo "[2/5] 复制应用文件..."
@@ -130,7 +124,7 @@ tail -n+\$ARCHIVE_LINE "\$0" | tar -xzf - -C "\$TMPDIR"
 # 2. 系统检测与 Docker 检查
 if [[ "\$SKIP_DOCKER_CHECK" == "no" ]]; then
     echo "[2/6] 检查 Docker..."
-    if ! command -v docker &>/dev/null; then
+    if ! command -v docker \u0026>/dev/null; then
         echo "警告: 未检测到 Docker。EasyDockCross 运行需要 Docker 20.10+。"
         echo "Ubuntu/Debian 安装命令: sudo apt-get install -y docker.io docker-compose-plugin"
         read -p "是否继续安装？(y/N) " -n 1 -r
@@ -152,7 +146,7 @@ mkdir -p "\$DATA_DIR"
 
 # 4. 创建用户与权限
 echo "[4/6] 创建运行用户 \$RUN_USER ..."
-if ! id -u "\$RUN_USER" >/dev/null 2>&1; then
+if ! id -u "\$RUN_USER" \u003e/dev/null 2\u003e\u00261; then
     useradd -r -s /bin/false -d "\$DATA_DIR" "\$RUN_USER" || true
 fi
 chown -R "\$RUN_USER:\$RUN_USER" "\$DATA_DIR"
@@ -160,7 +154,7 @@ chmod 755 "\$INSTALL_PREFIX"
 
 # 配置文件：写入数据目录和端口
 ENV_FILE="\$INSTALL_PREFIX/.env"
-cat > "\$ENV_FILE" <<EOF
+cat \u003e "\$ENV_FILE" \u003c\u003cEOF
 FLASK_ENV=production
 DATA_DIR=\$DATA_DIR
 PORT=\$SERVICE_PORT
@@ -168,9 +162,9 @@ DOCKER_SOCKET=unix:///var/run/docker.sock
 EOF
 
 # 5. 注册 systemd 服务
-if [[ "\$USE_SYSTEMD" == "yes" ]] && command -v systemctl &>/dev/null; then
+if [[ "\$USE_SYSTEMD" == "yes" ]] \u0026\u0026 command -v systemctl \u0026\u003e/dev/null; then
     echo "[5/6] 注册 systemd 服务..."
-    cat > "/etc/systemd/system/easydockcross.service" <<EOF
+    cat \u003e "/etc/systemd/system/easydockcross.service" \u003c\u003cEOF
 [Unit]
 Description=EasyDockCross
 After=network.target

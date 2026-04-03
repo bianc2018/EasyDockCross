@@ -12,16 +12,21 @@ echo ========================================
 echo EasyDockCross 开发环境启动脚本 (Windows)
 echo ========================================
 
-if not exist "%VENV_DIR%" (
-    echo 创建 Python 虚拟环境...
-    python -m venv "%VENV_DIR%"
+REM 检查 uv
+uv --version >nul 2>&1
+if errorlevel 1 (
+    echo 错误: 未找到 uv。请安装 uv:
+    echo   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    exit /b 1
 )
 
-call "%VENV_DIR%\Scripts\activate.bat"
+if not exist "%VENV_DIR%" (
+    echo 创建 Python 虚拟环境 (uv)...
+    uv venv "%VENV_DIR%"
+)
 
-echo 安装依赖...
-pip install -q --upgrade pip
-pip install -q -r requirements.txt
+echo 安装依赖 (uv)...
+uv pip install -q -r requirements.txt --python "%VENV_DIR%\Scripts\python.exe"
 
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%"
 if not exist "%DATA_DIR%\cache" mkdir "%DATA_DIR%\cache"
@@ -34,4 +39,4 @@ echo 数据目录: %DATA_DIR%
 echo 访问地址: http://127.0.0.1:5000
 echo ========================================
 
-python app.py
+"%VENV_DIR%\Scripts\python.exe" app.py
