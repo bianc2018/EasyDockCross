@@ -1,12 +1,14 @@
 import threading
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_login import login_required, current_user
+from sqlalchemy import update
 
+from app.config import Config
 from app.docker_client import DockerBuildClient
 from app.extensions import db
-from app.models import BuildGroup, BuildTask, BuildTarget, Project
+from app.models import BuildArtifact, BuildGroup, BuildTask, BuildTarget, Project
 
 build_bp = Blueprint("build", __name__)
 
@@ -129,18 +131,24 @@ class BuildScheduler:
     def _execute_task(self, task_id: int):
         """单个构建任务执行逻辑"""
         with self.app.app_context():
+            # 原子性状态更新：只更新仍处于 pending 的任务
+            result = db.session.execute(
+                update(BuildTask)
+                .where(BuildTask.id == task_id, BuildTask.status == "pending")
+                .values(status="running", start_time=datetime.utcnow())
+            )
+            db.session.commit()
+            if result.rowcount == 0:
+                return
+
             task = BuildTask.query.get(task_id)
-            if not task or task.status != "pending":
+            if not task:
                 return
 
             cancel_event = threading.Event()
             with self._lock:
                 self._cancel_events[task_id] = cancel_event
 
-            # 标记为 running
-            task.status = "running"
-            task.start_time = datetime.utcnow()
-            db.session.commit()
             _update_group_status(task.build_group_id)
 
             # 启动超时 Timer
@@ -300,7 +308,26 @@ def init_ws(sock):
     @sock.route("/ws/builds/<int:group_id>/log")
     def ws_build_log(ws, group_id):
         """WebSocket 日志流：推送 build group 下任务的日志增量"""
+        from flask_login import current_user as ws_user
         import time
+
+        if not ws_user.is_authenticated:
+            ws.send("[系统] 未登录\n")
+            ws.close()
+            return
+
+        group = BuildGroup.query.get(group_id)
+        if not group:
+            ws.send("[系统] 未找到构建组\n")
+            ws.close()
+            return
+
+        project = Project.query.get(group.project_id)
+        if not project or (project.user_id != ws_user.id and not ws_user.is_admin):
+            ws.send("[系统] 无权访问\n")
+            ws.close()
+            return
+
         last_len = 0
         while True:
             tasks = BuildTask.query.filter_by(build_group_id=group_id).all()
@@ -326,3 +353,17 @@ def init_ws(sock):
             except Exception:
                 break
         ws.close()
+
+
+@build_bp.route("/artifacts/<int:task_id>/download/<path:filename>")
+@login_required
+def download_artifact(task_id, filename):
+    """下载构建产物"""
+    task = BuildTask.query.get_or_404(task_id)
+    project = Project.query.get(task.project_id)
+    if not project or (project.user_id != current_user.id and not current_user.is_admin):
+        return jsonify({"error": "无权访问"}), 403
+
+    artifact = BuildArtifact.query.filter_by(build_task_id=task_id, file_path=filename).first_or_404()
+    directory = Config.ARTIFACTS_DIR / str(task_id)
+    return send_from_directory(str(directory), filename, as_attachment=True)

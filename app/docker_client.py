@@ -1,3 +1,4 @@
+import shlex
 import threading
 from pathlib import Path
 
@@ -79,7 +80,7 @@ class DockerBuildClient:
         command = target.build_command or "echo 'No build command'"
         # 使用 bash -c 执行，方便处理复杂命令
         entrypoint = ["/bin/bash", "-c"]
-        cmd = [f"cd /work/src \u0026\u0026 {command} \u0026\u0026 cp -r {target.artifacts_path or '.'} /work/output/"]
+        cmd = [f"cd /work/src \u0026\u0026 {shlex.quote(command)} \u0026\u0026 cp -r {shlex.quote(target.artifacts_path or '.')} /work/output/"]
 
         container = None
         try:
@@ -182,7 +183,7 @@ class DockerBuildClient:
                     build_task_id=task.id,
                     file_path=str(fpath.relative_to(artifact_host_dir)),
                     file_size=size,
-                    download_url=f"/api/v1/artifacts/{task.id}/download/{fpath.name}",
+                    download_url=f"/api/v1/artifacts/{task.id}/download/{fpath.relative_to(artifact_host_dir)}",
                 )
                 db.session.add(artifact)
         db.session.commit()

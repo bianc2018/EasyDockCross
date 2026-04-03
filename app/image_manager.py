@@ -1,4 +1,6 @@
 import json
+import re
+import shlex
 import shutil
 import tempfile
 import threading
@@ -33,8 +35,34 @@ def _image_to_dict(image: CustomImage) -> dict:
     }
 
 
+def _validate_dockerfile_input(base_image: str, config: dict) -> None:
+    """基础校验，防止 Dockerfile 注入"""
+    if not base_image or "\n" in base_image or " " in base_image:
+        raise ValueError("基础镜像格式无效")
+
+    for pkg in config.get("system_packages", []):
+        if not isinstance(pkg, str) or "\n" in pkg or " " in pkg or any(c in pkg for c in ";|&$`"):
+            raise ValueError(f"非法的系统依赖包: {pkg}")
+
+    for tool in config.get("tools", []):
+        if not isinstance(tool, str) or "\n" in tool or " " in tool or any(c in tool for c in ";|&$`"):
+            raise ValueError(f"非法的开发工具: {tool}")
+
+    env_vars = config.get("env_vars", {})
+    for k, v in env_vars.items():
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(k)):
+            raise ValueError(f"非法的环境变量名: {k}")
+        if "\n" in str(v):
+            raise ValueError(f"环境变量值不能包含换行: {k}")
+
+    pre_build = config.get("pre_build_script", "")
+    if "\n" in pre_build:
+        raise ValueError("预构建脚本不能包含换行符")
+
+
 def generate_dockerfile(base_image: str, config: dict) -> str:
     """根据简单模式配置自动生成 Dockerfile"""
+    _validate_dockerfile_input(base_image, config)
     lines = [f"FROM {base_image}"]
 
     # 系统依赖包
@@ -61,7 +89,7 @@ def generate_dockerfile(base_image: str, config: dict) -> str:
     # 环境变量
     env_vars = config.get("env_vars", {})
     for k, v in env_vars.items():
-        lines.append(f"ENV {k}={v}")
+        lines.append(f"ENV {k}={shlex.quote(str(v))}")
 
     # 预构建脚本
     pre_build = config.get("pre_build_script", "")

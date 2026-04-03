@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
 class Project(db.Model):
     """项目表"""
     __tablename__ = "project"
+    __table_args__ = (db.UniqueConstraint("name", "user_id", name="uix_project_name_user"),)
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
