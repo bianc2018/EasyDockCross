@@ -1,0 +1,8 @@
+{
+  "key": "cpp_make_linux_x64",
+  "name": "C++ Make (Linux x86_64)",
+  "language": "cpp",
+  "image_base": "dockcross/linux-x64:latest",
+  "build_command": "make -j$(nproc)",
+  "description": "C++ 项目使用 Make 构建"
+}

@@ -1,0 +1,8 @@
+{
+  "key": "go_linux_x64",
+  "name": "Go (Linux x86_64)",
+  "language": "go",
+  "image_base": "dockcross/linux-x64:latest",
+  "build_command": "GOOS=linux GOARCH=amd64 go build -o output/app ./cmd/app",
+  "description": "Go 项目交叉编译到 Linux x86_64"
+}

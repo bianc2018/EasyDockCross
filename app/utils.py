@@ -88,3 +88,20 @@ def format_bytes(size: int) -> str:
             return f"{size:.1f} {unit}"
         size /= 1024.0
     return f"{size:.1f} PB"
+
+
+def load_preset_templates(presets_dir: Path) -> dict:
+    """加载 presets/templates/ 下的所有 JSON 预设模板"""
+    templates = {}
+    templates_dir = presets_dir / "templates"
+    if not templates_dir.exists():
+        return templates
+    for f in sorted(templates_dir.glob("*.json")):
+        try:
+            import json
+            data = json.loads(f.read_text(encoding="utf-8"))
+            key = data.get("key") or f.stem
+            templates[key] = data
+        except Exception:
+            continue
+    return templates

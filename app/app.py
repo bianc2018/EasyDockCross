@@ -39,10 +39,12 @@ def create_app() -> Flask:
     # 注册蓝图（延迟导入避免循环依赖）
     from app.auth import auth_bp
     from app.api import api_bp
+    from app.project import project_bp
     from app.views import views_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp, url_prefix="/api/v1")
+    app.register_blueprint(project_bp, url_prefix="/api/v1")
     app.register_blueprint(views_bp)
 
     with app.app_context():

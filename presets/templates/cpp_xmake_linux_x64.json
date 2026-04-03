@@ -1,0 +1,8 @@
+{
+  "key": "cpp_xmake_linux_x64",
+  "name": "C++ Xmake (Linux x86_64)",
+  "language": "cpp",
+  "image_base": "dockcross/linux-x64:latest",
+  "build_command": "xmake f -y && xmake -j$(nproc)",
+  "description": "C++ 项目使用 Xmake 构建"
+}

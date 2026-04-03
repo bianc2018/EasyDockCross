@@ -1,0 +1,8 @@
+{
+  "key": "python_linux_x64",
+  "name": "Python (Linux x86_64)",
+  "language": "python",
+  "image_base": "dockcross/manylinux2014-x64:latest",
+  "build_command": "pip install -r requirements.txt && python setup.py bdist_wheel",
+  "description": "Python 项目构建 wheel 包"
+}
