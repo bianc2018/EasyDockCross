@@ -1,0 +1,97 @@
+from datetime import datetime
+
+import bcrypt
+from flask import Blueprint, request, jsonify, redirect, url_for, render_template_string
+from flask_login import login_user, logout_user, login_required, current_user
+
+from app.extensions import db
+from app.models import User
+
+auth_bp = Blueprint("auth", __name__)
+
+
+@auth_bp.route("/login", methods=["GET", "POST"])
+def login_page():
+    """登录页面（MVP 阶段先用内嵌简单 HTML，后续迁移到独立模板）"""
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        user = User.query.filter_by(username=username).first()
+        if user and bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
+            login_user(user, remember=True)
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("views.index"))
+        return render_template_string(LOGIN_HTML, error="用户名或密码错误"), 401
+
+    return render_template_string(LOGIN_HTML, error=None)
+
+
+@auth_bp.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("auth.login_page"))
+
+
+@auth_bp.route("/api/v1/login", methods=["POST"])
+def api_login():
+    """API 登录接口（供 CLI 和前端 AJAX 使用）"""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify({"error": "用户名和密码不能为空"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
+        return jsonify({"error": "用户名或密码错误"}), 401
+
+    login_user(user, remember=True)
+    return jsonify({"user_id": user.id, "username": user.username, "is_admin": user.is_admin})
+
+
+@auth_bp.route("/api/v1/logout", methods=["POST"])
+@login_required
+def api_logout():
+    logout_user()
+    return jsonify({"message": "已登出"})
+
+
+LOGIN_HTML = """
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 - EasyDockCross</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container">
+  <div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+      <div class="card shadow">
+        <div class="card-body">
+          <h4 class="card-title text-center mb-4">EasyDockCross 登录</h4>
+          {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+          {% endif %}
+          <form method="post">
+            <div class="mb-3">
+              <label class="form-label">用户名</label>
+              <input type="text" name="username" class="form-control" required autofocus>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">密码</label>
+              <input type="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">登录</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+"""
