@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_login import login_required, current_user
 from sqlalchemy import update
+from sqlalchemy.orm import contains_eager
 
 from app.config import Config
 from app.docker_client import DockerBuildClient
@@ -155,6 +156,7 @@ class BuildScheduler:
             timer = threading.Timer(self.timeout_seconds, self._timeout_task, args=(task_id,))
             timer.start()
 
+            success = False
             try:
                 # Docker 真实构建（TASK-006 已实现）
                 success = self._run_docker_build(task_id, cancel_event)
@@ -274,7 +276,11 @@ def list_builds():
     per_page = request.args.get("per_page", 20, type=int)
     project_id = request.args.get("project_id", type=int)
 
-    query = BuildGroup.query.join(Project, BuildGroup.project_id == Project.id)
+    query = (
+        BuildGroup.query
+        .join(Project, BuildGroup.project_id == Project.id)
+        .options(contains_eager(BuildGroup.project))
+    )
     if not current_user.is_admin:
         query = query.filter(Project.user_id == current_user.id)
     if project_id:
