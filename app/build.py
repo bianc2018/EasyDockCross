@@ -1,7 +1,5 @@
-import queue
 import threading
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user

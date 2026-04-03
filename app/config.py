@@ -28,6 +28,7 @@ class Config:
 
     # Docker
     DOCKER_SOCKET = os.environ.get("DOCKER_SOCKET", "unix:///var/run/docker.sock")
+    DOCKER_MEM_LIMIT = os.environ.get("DOCKER_MEM_LIMIT", "2g")
 
     # 构建限制
     MAX_CONCURRENT_BUILDS = int(os.environ.get("MAX_CONCURRENT_BUILDS", "3"))

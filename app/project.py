@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Project, BuildTarget
 from app.utils import load_preset_templates
+from sqlalchemy.orm import joinedload
 
 project_bp = Blueprint("project", __name__)
 
@@ -136,7 +137,7 @@ def create_project():
 @project_bp.route("/projects/<int:project_id>", methods=["GET"])
 @login_required
 def get_project(project_id):
-    project = Project.query.get_or_404(project_id)
+    project = Project.query.options(joinedload(Project.targets)).get_or_404(project_id)
     if project.user_id != current_user.id and not current_user.is_admin:
         return jsonify({"error": "无权访问"}), 403
     result = _project_to_dict(project)

@@ -1,6 +1,3 @@
-import io
-import shutil
-import tarfile
 import threading
 from pathlib import Path
 
@@ -73,7 +70,7 @@ class DockerBuildClient:
         # 3. 容器资源配置
         host_config = self.client.api.create_host_config(
             binds=binds,
-            mem_limit="2g",
+            mem_limit=Config.DOCKER_MEM_LIMIT,
             cpu_period=100000,
             cpu_quota=100000,
         )

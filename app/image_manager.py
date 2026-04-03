@@ -231,9 +231,10 @@ def _do_build_image(image_id: int):
 
         try:
             logs = []
+            tag_name = image.name.lower().replace(" ", "-").replace("_", "-")
             for line in client.api.build(
                 path=str(tmpdir),
-                tag=f"easydockcross/{image.name}:latest",
+                tag=f"easydockcross/{tag_name}:latest",
                 rm=True,
                 decode=True,
             ):

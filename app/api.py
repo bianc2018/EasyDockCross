@@ -37,17 +37,3 @@ def predownload_images():
     return jsonify({"results": outcomes})
 
 
-# ===========================
-# 以下路由为占位，后续 TASK 逐步实现
-# ===========================
-
-@api_bp.route("/projects", methods=["GET"])
-@login_required
-def list_projects():
-    return jsonify({"message": "TODO: 项目列表", "user": current_user.username})
-
-
-@api_bp.route("/builds", methods=["GET"])
-@login_required
-def list_builds():
-    return jsonify({"message": "TODO: 构建列表"})
