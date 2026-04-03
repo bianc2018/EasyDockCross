@@ -24,9 +24,9 @@
 ### 方式一：自解压安装脚本（推荐）
 
 ```bash
-wget https://github.com/bianc2018/EasyDockCross/releases/download/v0.0.2.0/easydockcross-0.0.2.0-linux-x86_64.sh
-chmod +x easydockcross-0.0.2.0-linux-x86_64.sh
-sudo ./easydockcross-0.0.2.0-linux-x86_64.sh
+wget https://github.com/bianc2018/EasyDockCross/releases/download/v0.1.0.0/easydockcross-0.1.0.0-linux-x86_64.sh
+chmod +x easydockcross-0.1.0.0-linux-x86_64.sh
+sudo ./easydockcross-0.1.0.0-linux-x86_64.sh
 ```
 
 安装完成后访问 http://localhost:5000，使用自动生成的 `admin` 账号登录。
