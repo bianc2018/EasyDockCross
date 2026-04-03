@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  easydockcross:
+    image: python:3.10-slim
+    container_name: easydockcross_dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - easydockcross_data:/var/lib/easydockcross
+    environment:
+      - FLASK_ENV=development
+      - DATA_DIR=/var/lib/easydockcross
+      - DOCKER_SOCKET=unix:///var/run/docker.sock
+      - SECRET_KEY=dev-secret-key-change-in-prod
+    ports:
+      - "5000:5000"
+    command: >
+      bash -c "
+        pip install -r requirements.txt &&
+        python app.py
+      "
+    restart: unless-stopped
+
+volumes:
+  easydockcross_data:

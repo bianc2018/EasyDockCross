@@ -1,0 +1,11 @@
+Flask>=2.0,<3.0
+Flask-SQLAlchemy>=3.0,<4.0
+Flask-Login>=0.6
+Flask-Migrate>=4.0
+flask-sock>=0.5
+bcrypt>=4.0
+docker>=6.0
+PyYAML>=6.0
+python-dotenv>=0.21
+Werkzeug>=2.0,<3.0
+click>=8.0
