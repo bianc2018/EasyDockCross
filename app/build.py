@@ -1,12 +1,12 @@
 import queue
 import threading
-import time
 from datetime import datetime, timedelta
 from typing import Optional
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 
+from app.docker_client import DockerBuildClient
 from app.extensions import db
 from app.models import BuildGroup, BuildTask, BuildTarget, Project
 
@@ -150,38 +150,22 @@ class BuildScheduler:
             timer.start()
 
             try:
-                # 真正 Docker 构建由 TASK-006 替换此处
-                self._run_docker_build(task_id, cancel_event)
+                # Docker 真实构建（TASK-006 已实现）
+                success = self._run_docker_build(task_id, cancel_event)
             finally:
                 timer.cancel()
-                # 如果超时已经被触发，timer 的回调可能和此处产生竞态；
-                # 通过再次读取 task 状态确保不覆盖 final 状态
                 task = BuildTask.query.get(task_id)
                 if task and task.status == "running":
-                    # 说明没有超时或被取消，按 Docker 结果处理
-                    # 目前 stub 默认设为 success（仅用于框架联调）
-                    task.status = "success"
+                    # 异常情况：docker_client 没有正确结束状态
+                    task.status = "failed" if not success else "success"
                     task.end_time = datetime.utcnow()
                     db.session.commit()
                 _update_group_status(task.build_group_id)
 
-    def _run_docker_build(self, task_id: int, cancel_event: threading.Event):
-        """Docker 构建执行占位（TASK-006 替换）"""
-        task = BuildTask.query.get(task_id)
-        if not task:
-            return
-
-        # 模拟构建日志输出
-        logs = ["开始构建...\n", "拉取镜像...\n", "编译中...\n", "构建完成\n"]
-        for line in logs:
-            if cancel_event.is_set():
-                task.status = "cancelled"
-                task.end_time = datetime.utcnow()
-                db.session.commit()
-                return
-            task.output_log = (task.output_log or "") + line
-            db.session.commit()
-            time.sleep(2)
+    def _run_docker_build(self, task_id: int, cancel_event: threading.Event) -> bool:
+        """调用 DockerBuildClient 执行真实构建"""
+        client = DockerBuildClient()
+        return client.run_build(task_id, cancel_event)
 
     def _timeout_task(self, task_id: int):
         """超时处理：强制将任务标记为 failed"""
