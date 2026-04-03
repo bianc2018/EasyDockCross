@@ -41,12 +41,14 @@ def create_app() -> Flask:
     from app.api import api_bp
     from app.project import project_bp
     from app.build import build_bp, scheduler
+    from app.image_manager import image_bp
     from app.views import views_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp, url_prefix="/api/v1")
     app.register_blueprint(project_bp, url_prefix="/api/v1")
     app.register_blueprint(build_bp, url_prefix="/api/v1")
+    app.register_blueprint(image_bp, url_prefix="/api/v1")
     app.register_blueprint(views_bp)
 
     scheduler.init_app(app)
