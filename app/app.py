@@ -27,6 +27,10 @@ def create_app() -> Flask:
     login_manager.init_app(app)
     login_manager.login_view = "auth.login_page"
     login_manager.login_message = "请先登录"
+    login_manager.remember_cookie_duration = app.config.get("REMEMBER_COOKIE_DURATION")
+    login_manager.remember_cookie_secure = app.config.get("REMEMBER_COOKIE_SECURE", False)
+    login_manager.remember_cookie_httponly = app.config.get("REMEMBER_COOKIE_HTTPONLY", True)
+    login_manager.remember_cookie_samesite = app.config.get("REMEMBER_COOKIE_SAMESITE", "Lax")
 
     @login_manager.user_loader
     def load_user(user_id):

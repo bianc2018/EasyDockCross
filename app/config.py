@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -37,6 +38,12 @@ class Config:
     LOG_RETENTION_DAYS = int(os.environ.get("LOG_RETENTION_DAYS", "30"))
     ARTIFACT_RETENTION_DAYS = int(os.environ.get("ARTIFACT_RETENTION_DAYS", "30"))
     MAX_BUILDS_PER_PROJECT = int(os.environ.get("MAX_BUILDS_PER_PROJECT", "50"))
+
+    # 会话
+    REMEMBER_COOKIE_DURATION = timedelta(hours=24)
+    REMEMBER_COOKIE_SECURE = False
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
 
     # 上传限制
     MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500MB

@@ -57,6 +57,80 @@ def api_logout():
     return jsonify({"message": "已登出"})
 
 
+@auth_bp.route("/api/v1/users/me", methods=["GET"])
+@login_required
+def get_current_user():
+    """获取当前登录用户信息"""
+    return jsonify({
+        "id": current_user.id,
+        "username": current_user.username,
+        "is_admin": current_user.is_admin,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+    })
+
+
+@auth_bp.route("/api/v1/users/me/password", methods=["PUT"])
+@login_required
+def change_password():
+    """修改当前用户密码"""
+    data = request.get_json(silent=True) or {}
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
+
+    if not old_password or not new_password:
+        return jsonify({"error": "旧密码和新密码不能为空"}), 400
+
+    if len(new_password) < 8:
+        return jsonify({"error": "新密码长度至少为 8 位"}), 400
+
+    if not bcrypt.checkpw(old_password.encode("utf-8"), current_user.password_hash.encode("utf-8")):
+        return jsonify({"error": "旧密码错误"}), 401
+
+    current_user.password_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    db.session.commit()
+    return jsonify({"message": "密码修改成功"})
+
+
+@auth_bp.route("/api/v1/users", methods=["GET"])
+@login_required
+def list_users():
+    """用户列表（仅管理员）"""
+    if not current_user.is_admin:
+        return jsonify({"error": "无权访问"}), 403
+
+    users = User.query.all()
+    return jsonify([{
+        "id": u.id,
+        "username": u.username,
+        "is_admin": u.is_admin,
+        "created_at": u.created_at.isoformat() if u.created_at else None,
+    } for u in users])
+
+
+@auth_bp.route("/api/v1/users/<int:user_id>/reset-password", methods=["POST"])
+@login_required
+def admin_reset_password(user_id):
+    """管理员重置指定用户密码"""
+    if not current_user.is_admin:
+        return jsonify({"error": "无权访问"}), 403
+
+    user = User.query.get_or_404(user_id)
+    data = request.get_json(silent=True) or {}
+    new_password = data.get("new_password")
+
+    if not new_password:
+        # 未提供密码则自动生成随机密码
+        import secrets
+        new_password = secrets.token_urlsafe(16)
+
+    if len(new_password) < 8:
+        return jsonify({"error": "密码长度至少为 8 位"}), 400
+
+    user.password_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    db.session.commit()
+    return jsonify({"message": "密码重置成功", "new_password": new_password})
+
+
 LOGIN_HTML = """
 <!doctype html>
 <html lang="zh-CN">
