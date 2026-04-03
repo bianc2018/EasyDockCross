@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import bcrypt
-from flask import Blueprint, request, jsonify, redirect, url_for, render_template_string
+from flask import Blueprint, request, jsonify, redirect, url_for, render_template
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.extensions import db
@@ -12,7 +12,8 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login_page():
-    """登录页面（MVP 阶段先用内嵌简单 HTML，后续迁移到独立模板）"""
+    """登录页面"""
+    error = None
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -21,9 +22,12 @@ def login_page():
             login_user(user, remember=True)
             next_page = request.args.get("next")
             return redirect(next_page or url_for("views.index"))
-        return render_template_string(LOGIN_HTML, error="用户名或密码错误"), 401
+        error = "用户名或密码错误"
+        status_code = 401
+    else:
+        status_code = 200
 
-    return render_template_string(LOGIN_HTML, error=None)
+    return render_template("login.html", error=error), status_code
 
 
 @auth_bp.route("/logout")
@@ -129,43 +133,3 @@ def admin_reset_password(user_id):
     user.password_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     db.session.commit()
     return jsonify({"message": "密码重置成功", "new_password": new_password})
-
-
-LOGIN_HTML = """
-<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>登录 - EasyDockCross</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container">
-  <div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-      <div class="card shadow">
-        <div class="card-body">
-          <h4 class="card-title text-center mb-4">EasyDockCross 登录</h4>
-          {% if error %}
-          <div class="alert alert-danger">{{ error }}</div>
-          {% endif %}
-          <form method="post">
-            <div class="mb-3">
-              <label class="form-label">用户名</label>
-              <input type="text" name="username" class="form-control" required autofocus>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">密码</label>
-              <input type="password" name="password" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">登录</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-</body>
-</html>
-"""
