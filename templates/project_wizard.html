@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}新建项目 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h4 class="mb-4">创建新项目</h4>
+
+        <div class="mb-3">
+          <div class="progress">
+            <div class="progress-bar" id="wizard-progress" style="width: 16%">步骤 1/6</div>
+          </div>
+        </div>
+
+        <form id="wizard-form">
+          <!-- 步骤 1: 基本信息 -->
+          <div class="wizard-step active" data-step="1">
+            <div class="mb-3">
+              <label class="form-label">项目名称 *</label>
+              <input type="text" class="form-control" name="name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">描述</label>
+              <textarea class="form-control" name="description" rows="2"></textarea>
+            </div>
+          </div>
+
+          <!-- 步骤 2: 源码来源 -->
+          <div class="wizard-step" data-step="2">
+            <div class="mb-3">
+              <label class="form-label">源码类型</label>
+              <select class="form-select" name="source_type">
+                <option value="git">Git 仓库</option>
+                <option value="svn">SVN 仓库</option>
+                <option value="upload">本地上传</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">仓库地址</label>
+              <input type="text" class="form-control" name="source_url" placeholder="https://github.com/...">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">分支</label>
+              <input type="text" class="form-control" name="source_branch" value="main">
+            </div>
+          </div>
+
+          <!-- 步骤 3: 构建目标 -->
+          <div class="wizard-step" data-step="3">
+            <div class="mb-3">
+              <label class="form-label">选择预设模板</label>
+              <select class="form-select" id="preset-select">
+                <option value="">-- 无预设 --</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">目标名称</label>
+              <input type="text" class="form-control" id="target-name" value="default">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">产物类型</label>
+              <select class="form-select" id="target-output_type">
+                <option value="binary">二进制文件</option>
+                <option value="docker">Docker 镜像</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">目标系统</label>
+              <select class="form-select" id="target-os">
+                <option value="linux">Linux</option>
+                <option value="windows">Windows</option>
+                <option value="macos">macOS</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">目标架构</label>
+              <select class="form-select" id="target-arch">
+                <option value="x86_64">x86_64</option>
+                <option value="arm64">arm64</option>
+                <option value="armv7">armv7</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 步骤 4: 环境配置 -->
+          <div class="wizard-step" data-step="4">
+            <div class="mb-3">
+              <label class="form-label">构建镜像</label>
+              <input type="text" class="form-control" id="target-image" value="dockcross/linux-x64:latest">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">环境变量（JSON 格式）</label>
+              <textarea class="form-control" id="target-env_vars" rows="2" placeholder='{"KEY":"VALUE"}'></textarea>
+            </div>
+          </div>
+
+          <!-- 步骤 5: 构建指令 -->
+          <div class="wizard-step" data-step="5">
+            <div class="mb-3">
+              <label class="form-label">构建命令</label>
+              <textarea class="form-control" id="target-build_command" rows="4">go build -o output/app ./cmd/app</textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">产物路径（容器内）</label>
+              <input type="text" class="form-control" id="target-artifacts_path" value="output/">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">C++ 构建工具（如适用）</label>
+              <select class="form-select" id="target-build_tool">
+                <option value="">-- 不适用 --</option>
+                <option value="cmake">cmake</option>
+                <option value="xmake">xmake</option>
+                <option value="make">make</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 步骤 6: 触发方式 -->
+          <div class="wizard-step" data-step="6">
+            <div class="mb-3">
+              <label class="form-label">触发方式</label>
+              <select class="form-select" name="trigger_type">
+                <option value="manual">手动触发</option>
+                <option value="webhook">Webhook (后续支持)</option>
+                <option value="cron">定时任务 (后续支持)</option>
+              </select>
+            </div>
+          </div>
+        </form>
+
+        <div class="d-flex justify-content-between mt-4">
+          <button type="button" class="btn btn-outline-secondary" id="btn-prev" disabled>上一步</button>
+          <button type="button" class="btn btn-primary" id="btn-next">下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var currentStep = 1;
+var presets = {};
+
+$(function(){
+  loadPresets();
+  updateUI();
+
+  $('#btn-next').on('click', function(){
+    if(currentStep < 6){
+      currentStep++;
+      updateUI();
+    } else {
+      submitProject();
+    }
+  });
+
+  $('#btn-prev').on('click', function(){
+    if(currentStep > 1){
+      currentStep--;
+      updateUI();
+    }
+  });
+
+  $('#preset-select').on('change', function(){
+    var p = presets[$(this).val()];
+    if(p){
+      $('#target-image').val(p.image_base || p.image || '');
+      $('#target-build_command').val(p.build_command || '');
+    }
+  });
+});
+
+function loadPresets(){
+  $.getJSON('/api/v1/presets', function(list){
+    var opts = '<option value="">-- 无预设 --</option>';
+    list.forEach(function(p){
+      presets[p.key] = p;
+      opts += '<option value="' + p.key + '">' + p.name + '</option>';
+    });
+    $('#preset-select').html(opts);
+  });
+}
+
+function updateUI(){
+  $('.wizard-step').removeClass('active');
+  $('.wizard-step[data-step=' + currentStep + ']').addClass('active');
+  $('#wizard-progress').css('width', (currentStep * 100 / 6) + '%').text('步骤 ' + currentStep + '/6');
+  $('#btn-prev').prop('disabled', currentStep === 1);
+  $('#btn-next').text(currentStep === 6 ? '创建项目' : '下一步');
+}
+
+function submitProject(){
+  var payload = {
+    name: $('input[name=name]').val().trim(),
+    description: $('textarea[name=description]').val().trim(),
+    source_type: $('select[name=source_type]').val(),
+    source_url: $('input[name=source_url]').val().trim(),
+    source_branch: $('input[name=source_branch]').val().trim(),
+    triggers: { type: $('select[name=trigger_type]').val() },
+    preset_key: $('#preset-select').val() || null,
+    targets: [{
+      name: $('#target-name').val().trim(),
+      output_type: $('#target-output_type').val(),
+      os: $('#target-os').val(),
+      arch: $('#target-arch').val(),
+      image: $('#target-image').val().trim(),
+      build_command: $('#target-build_command').val().trim(),
+      build_tool: $('#target-build_tool').val() || null,
+      env_vars: parseJSON($('#target-env_vars').val()),
+      artifacts_path: $('#target-artifacts_path').val().trim(),
+    }]
+  };
+
+  if(!payload.name){
+    alert('项目名称不能为空');
+    currentStep = 1;
+    updateUI();
+    return;
+  }
+  if(!payload.targets[0].image || !payload.targets[0].build_command){
+    alert('构建镜像和构建命令不能为空');
+    currentStep = 4;
+    updateUI();
+    return;
+  }
+
+  $.ajax({
+    url: '/api/v1/projects',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(payload),
+    success: function(r){
+      alert('项目创建成功');
+      location.href = '/projects/' + r.id;
+    },
+    error: function(xhr){
+      alert('创建失败: ' + (xhr.responseJSON && xhr.responseJSON.error || '未知错误'));
+    }
+  });
+}
+
+function parseJSON(v){
+  try { return JSON.parse(v || '{}'); }
+  catch(e){ return {}; }
+}
+</script>
+{% endblock %}

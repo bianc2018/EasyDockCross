@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}项目详情 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="/projects">← 返回项目列表</a>
+</div>
+
+<h2 id="proj-name">加载中...</h2>
+<p class="text-muted" id="proj-desc"></p>
+
+<div class="row mt-4">
+  <div class="col-md-8">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex justify-content-between">
+        <span>构建目标</span>
+        <button class="btn btn-sm btn-primary" onclick="addTarget()">+ 添加目标</button>
+      </div>
+      <div class="card-body">
+        <ul class="list-group" id="target-list">
+          <li class="list-group-item text-muted">加载中...</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header">最近构建</div>
+      <div class="card-body">
+        <ul class="list-group" id="build-list">
+          <li class="list-group-item text-muted">加载中...</li>
+        </ul>
+        <p class="mt-2"><a href="#" id="builds-more">查看全部构建 →</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="d-grid gap-2">
+      <button class="btn btn-success" onclick="triggerBuild()">立即构建</button>
+      <button class="btn btn-outline-danger" onclick="deleteProject()">删除项目</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var projectId = location.pathname.split('/').pop();
+
+$(function(){
+  loadProject();
+  $('#builds-more').attr('href', '/builds?project_id=' + projectId);
+});
+
+function loadProject(){
+  $.getJSON('/api/v1/projects/' + projectId, function(p){
+    $('#proj-name').text(p.name);
+    $('#proj-desc').text(p.description || '无描述');
+
+    var tHtml = '';
+    if(!p.targets || p.targets.length === 0){
+      tHtml = '<li class="list-group-item text-muted">暂无构建目标</li>';
+    } else {
+      p.targets.forEach(function(t){
+        tHtml += '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+          '<div>' +
+            '<strong>' + t.name + '</strong> ' +
+            '<span class="badge bg-secondary">' + (t.build_tool || t.output_type) + '</span> ' +
+            '<span class="badge bg-info">' + t.image + '</span>' +
+            '<br><small class="text-muted">' + $('<div>').text(t.build_command).html().substring(0,60) + '...</small>' +
+          '</div>' +
+          '<button class="btn btn-sm btn-outline-danger" onclick="deleteTarget(' + t.id + ')">删除</button>' +
+        '</li>';
+      });
+    }
+    $('#target-list').html(tHtml);
+
+    // TODO: 最近构建列表（目前后端没有项目维度的 builds 接口，可后续补充）
+    $('#build-list').html('<li class="list-group-item text-muted">请前往构建页面查看</li>');
+  });
+}
+
+function triggerBuild(){
+  if(!confirm('确定要立即构建？')) return;
+  $.post('/api/v1/projects/' + projectId + '/build', JSON.stringify({}), function(r){
+    alert('构建已触发，ID: ' + r.id);
+    window.location.href = '/builds/' + r.id;
+  }, 'json').fail(function(xhr){
+    alert('触发失败: ' + (xhr.responseJSON && xhr.responseJSON.error || '未知错误'));
+  });
+}
+
+function deleteProject(){
+  if(!confirm('确定删除该项目？')) return;
+  $.ajax({url:'/api/v1/projects/' + projectId, method:'DELETE', success:function(){
+    location.href = '/projects';
+  }});
+}
+
+function addTarget(){
+  location.href = '/projects/' + projectId + '/targets/new';
+}
+
+function deleteTarget(tid){
+  if(!confirm('确定删除该构建目标？')) return;
+  $.ajax({url:'/api/v1/targets/' + tid, method:'DELETE', success:function(){
+    loadProject();
+  }});
+}
+</script>
+{% endblock %}

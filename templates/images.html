@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}环境镜像 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>环境镜像</h2>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#imageModal">+ 新建镜像</button>
+</div>
+
+<table class="table table-hover bg-white shadow-sm">
+  <thead>
+    <tr>
+      <th>名称</th>
+      <th>基础镜像</th>
+      <th>状态</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="image-list">
+    <tr><td colspan="4" class="text-center text-muted">加载中...</td></tr>
+  </tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新建自定义镜像</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="image-form">
+          <div class="mb-3">
+            <label class="form-label">名称 *</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">基础镜像 *</label>
+            <input type="text" class="form-control" name="base_image" value="dockcross/linux-x64:latest" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea class="form-control" name="description" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">系统依赖包（空格分隔）</label>
+            <input type="text" class="form-control" name="system_packages">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">开发工具（空格分隔）</label>
+            <input type="text" class="form-control" name="tools">
+          </div>
+          <div class="mb-3 form-check">
+            <input class="form-check-input" type="checkbox" name="use_ccache" id="use_ccache">
+            <label class="form-check-label" for="use_ccache">安装 ccache（C++ 构建缓存）</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">预构建脚本</label>
+            <textarea class="form-control" name="pre_build_script" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="submitImage()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  loadImages();
+});
+
+function loadImages(){
+  $.getJSON('/api/v1/images', function(r){
+    var rows = '';
+    if(!r.items || r.items.length === 0){
+      rows = '<tr><td colspan="4" class="text-center text-muted">暂无镜像</td></tr>';
+    } else {
+      r.items.forEach(function(i){
+        rows += '<tr>' +
+          '<td>' + $('<div>').text(i.name).html() + '</td>' +
+          '<td>' + i.base_image + '</td>' +
+          '<td><span class="badge bg-' + statusColor(i.status) + '">' + i.status + '</span></td>' +
+          '<td>' +
+            '<button class="btn btn-sm btn-primary" onclick="buildImage(' + i.id + ')">构建</button> ' +
+            '<button class="btn btn-sm btn-outline-secondary" onclick="viewLog(' + i.id + ')">日志</button> ' +
+            '<button class="btn btn-sm btn-danger" onclick="deleteImage(' + i.id + ')">删除</button>' +
+          '</td>' +
+        '</tr>';
+      });
+    }
+    $('#image-list').html(rows);
+  });
+}
+
+function statusColor(s){
+  if(s === 'ready') return 'success';
+  if(s === 'building') return 'primary';
+  return 'danger';
+}
+
+function submitImage(){
+  var form = $('#image-form').serializeArray();
+  var payload = { mode: 'simple', config: {} };
+  form.forEach(function(f){
+    if(f.name === 'use_ccache'){
+      payload.config[f.name] = true;
+    } else if(['system_packages','tools'].includes(f.name)){
+      payload.config[f.name] = f.value.trim().split(/\s+/).filter(Boolean);
+    } else if(f.name === 'pre_build_script'){
+      payload.config[f.name] = f.value;
+    } else {
+      payload[f.name] = f.value;
+    }
+  });
+  $.ajax({
+    url: '/api/v1/images',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(payload),
+    success: function(){
+      $('#imageModal').modal('hide');
+      $('#image-form')[0].reset();
+      loadImages();
+    },
+    error: function(xhr){
+      alert('保存失败: ' + (xhr.responseJSON && xhr.responseJSON.error || '未知错误'));
+    }
+  });
+}
+
+function buildImage(id){
+  if(!confirm('确定开始构建镜像？')) return;
+  $.post('/api/v1/images/' + id + '/build', JSON.stringify({}), function(){
+    alert('构建已启动');
+    loadImages();
+  }).fail(function(xhr){
+    alert('启动失败: ' + (xhr.responseJSON && xhr.responseJSON.error || '未知错误'));
+  });
+}
+
+function viewLog(id){
+  $.getJSON('/api/v1/images/' + id + '/build-log', function(r){
+    alert(r.build_log.substring(0, 2000) + (r.build_log.length > 2000 ? '\n...' : ''));
+  });
+}
+
+function deleteImage(id){
+  if(!confirm('确定删除该镜像配置？')) return;
+  $.ajax({url:'/api/v1/images/' + id, method:'DELETE', success:function(){
+    loadImages();
+  }});
+}
+</script>
+{% endblock %}

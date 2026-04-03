@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}首页 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+  <div class="container-fluid py-5">
+    <h1 class="display-5 fw-bold">EasyDockCross</h1>
+    <p class="col-md-8 fs-4">简单的 Docker 交叉构建系统。零配置、开箱即用，支持 Go/Python/Java/Node.js/C++ 的多平台构建。</p>
+    <a class="btn btn-primary btn-lg" href="/projects/new">创建项目</a>
+    <a class="btn btn-outline-secondary btn-lg" href="/images">管理环境</a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">项目</h5>
+        <p class="card-text display-6" id="stat-projects">-</p>
+        <a href="/projects" class="btn btn-sm btn-outline-primary">查看全部</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">构建</h5>
+        <p class="card-text display-6" id="stat-builds">-</p>
+        <a href="/builds" class="btn btn-sm btn-outline-primary">查看全部</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">环境镜像</h5>
+        <p class="card-text display-6" id="stat-images">-</p>
+        <a href="/images" class="btn btn-sm btn-outline-primary">查看全部</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  $.getJSON('/api/v1/projects', function(r){ $('#stat-projects').text(r.total || 0); });
+  // builds 没有聚合统计接口，暂用页面计数或单独请求
+  $.getJSON('/api/v1/images', function(r){ $('#stat-images').text(r.total || 0); });
+});
+</script>
+{% endblock %}

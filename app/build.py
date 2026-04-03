@@ -294,3 +294,37 @@ def get_build_log(task_id):
         "output_log": task.output_log or "",
         "error_log": task.error_log or "",
     })
+
+
+def init_ws(sock):
+    """注册 WebSocket 路由（避免循环导入）"""
+
+    @sock.route("/ws/builds/<int:group_id>/log")
+    def ws_build_log(ws, group_id):
+        """WebSocket 日志流：推送 build group 下任务的日志增量"""
+        import time
+        last_len = 0
+        while True:
+            tasks = BuildTask.query.filter_by(build_group_id=group_id).all()
+            if not tasks:
+                ws.send("[系统] 未找到构建任务\n")
+                break
+
+            full_log = ""
+            for task in tasks:
+                full_log += task.output_log or ""
+                full_log += task.error_log or ""
+
+            if len(full_log) > last_len:
+                ws.send(full_log[last_len:])
+                last_len = len(full_log)
+
+            # 如果所有任务都已结束，发送完剩余日志后关闭
+            if all(t.status in ("success", "failed", "cancelled") for t in tasks):
+                break
+
+            try:
+                time.sleep(1)
+            except Exception:
+                break
+        ws.close()

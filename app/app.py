@@ -4,10 +4,13 @@ from datetime import datetime
 
 import bcrypt
 from flask import Flask
+from flask_sock import Sock
 
 from app.config import get_config
 from app.extensions import db, login_manager, migrate
 from app.models import User
+
+sock = Sock()
 
 
 def create_app() -> Flask:
@@ -31,6 +34,7 @@ def create_app() -> Flask:
     login_manager.remember_cookie_secure = app.config.get("REMEMBER_COOKIE_SECURE", False)
     login_manager.remember_cookie_httponly = app.config.get("REMEMBER_COOKIE_HTTPONLY", True)
     login_manager.remember_cookie_samesite = app.config.get("REMEMBER_COOKIE_SAMESITE", "Lax")
+    sock.init_app(app)
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -40,7 +44,7 @@ def create_app() -> Flask:
     from app.auth import auth_bp
     from app.api import api_bp
     from app.project import project_bp
-    from app.build import build_bp, scheduler
+    from app.build import build_bp, scheduler, init_ws
     from app.image_manager import image_bp
     from app.views import views_bp
 
@@ -51,6 +55,7 @@ def create_app() -> Flask:
     app.register_blueprint(image_bp, url_prefix="/api/v1")
     app.register_blueprint(views_bp)
 
+    init_ws(sock)
     scheduler.init_app(app)
 
     with app.app_context():

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}构建列表 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>构建列表</h2>
+</div>
+
+<table class="table table-hover bg-white shadow-sm">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>项目</th>
+      <th>触发方式</th>
+      <th>状态</th>
+      <th>创建时间</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="build-list">
+    <tr><td colspan="6" class="text-center text-muted">加载中...</td></tr>
+  </tbody>
+</table>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  loadBuilds();
+});
+
+function loadBuilds(){
+  // 目前没有独立的 /api/v1/builds 接口，先通过项目列表获取各项目的构建信息
+  // 这里用一个简化方式：列出所有项目，然后将 build_groups 聚合展示
+  $.getJSON('/api/v1/projects', function(r){
+    var projects = r.items || [];
+    var allBuilds = [];
+    var pending = projects.length;
+    if(pending === 0){
+      $('#build-list').html('<tr><td colspan="6" class="text-center text-muted">暂无构建</td></tr>');
+      return;
+    }
+    projects.forEach(function(p){
+      $.getJSON('/api/v1/projects/' + p.id, function(proj){
+        (proj.build_groups || []).forEach(function(g){
+          g.project_name = p.name;
+          allBuilds.push(g);
+        });
+        pending--;
+        if(pending === 0) renderBuilds(allBuilds);
+      }).always(function(){
+        pending--;
+        if(pending === 0) renderBuilds(allBuilds);
+      });
+    });
+  });
+}
+
+function renderBuilds(builds){
+  builds.sort(function(a,b){ return (b.id || 0) - (a.id || 0); });
+  var rows = '';
+  if(builds.length === 0){
+    rows = '<tr><td colspan="6" class="text-center text-muted">暂无构建</td></tr>';
+  } else {
+    builds.forEach(function(g){
+      rows += '<tr>' +
+        '<td>' + g.id + '</td>' +
+        '<td>' + $('<div>').text(g.project_name).html() + '</td>' +
+        '<td>' + g.trigger_type + '</td>' +
+        '<td><span class="badge bg-' + statusColor(g.status) + '">' + g.status + '</span></td>' +
+        '<td>' + (g.created_at ? g.created_at.replace('T',' ').substring(0,19) : '-') + '</td>' +
+        '<td><a class="btn btn-sm btn-outline-primary" href="/builds/' + g.id + '">详情</a></td>' +
+      '</tr>';
+    });
+  }
+  $('#build-list').html(rows);
+}
+
+function statusColor(s){
+  switch(s){
+    case 'success': return 'success';
+    case 'failed': return 'danger';
+    case 'running': return 'primary';
+    case 'cancelled': return 'warning';
+    default: return 'secondary';
+  }
+}
+</script>
+{% endblock %}
