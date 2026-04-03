@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}添加构建目标 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="/projects/{{ project_id }}">← 返回项目详情</a>
+</div>
+
+<h2>添加构建目标</h2>
+
+<div class="card shadow-sm mt-4">
+  <div class="card-body">
+    <form id="target-form">
+      <div class="mb-3">
+        <label class="form-label">目标名称 *</label>
+        <input type="text" class="form-control" name="name" value="default" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">产物类型</label>
+        <select class="form-select" name="output_type">
+          <option value="binary">二进制文件</option>
+          <option value="docker">Docker 镜像</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">目标系统</label>
+        <select class="form-select" name="os">
+          <option value="linux">Linux</option>
+          <option value="windows">Windows</option>
+          <option value="macos">macOS</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">目标架构</label>
+        <select class="form-select" name="arch">
+          <option value="x86_64">x86_64</option>
+          <option value="arm64">arm64</option>
+          <option value="armv7">armv7</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">构建镜像 *</label>
+        <input type="text" class="form-control" name="image" value="dockcross/linux-x64:latest" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">构建命令 *</label>
+        <textarea class="form-control" name="build_command" rows="3" required>go build -o output/app ./cmd/app</textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">产物路径（容器内）</label>
+        <input type="text" class="form-control" name="artifacts_path" value="output/">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">C++ 构建工具（如适用）</label>
+        <select class="form-select" name="build_tool">
+          <option value="">-- 不适用 --</option>
+          <option value="cmake">cmake</option>
+          <option value="xmake">xmake</option>
+          <option value="make">make</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">环境变量（JSON 格式）</label>
+        <textarea class="form-control" name="env_vars" rows="2" placeholder='{"KEY":"VALUE"}'>{}</textarea>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="submitTarget()">保存</button>
+      <a class="btn btn-secondary" href="/projects/{{ project_id }}">取消</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function submitTarget(){
+  var data = {};
+  $('#target-form').serializeArray().forEach(function(f){
+    data[f.name] = f.value;
+  });
+  data.env_vars = (function(v){
+    try { return JSON.parse(v || '{}'); } catch(e){ return {}; }
+  })(data.env_vars);
+
+  $.ajax({
+    url: '/api/v1/projects/{{ project_id }}/targets',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(data),
+    success: function(){
+      alert('保存成功');
+      location.href = '/projects/{{ project_id }}';
+    },
+    error: function(xhr){
+      alert('保存失败: ' + (xhr.responseJSON && xhr.responseJSON.error || '未知错误'));
+    }
+  });
+}
+</script>
+{% endblock %}

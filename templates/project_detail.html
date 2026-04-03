@@ -72,8 +72,24 @@ function loadProject(){
     }
     $('#target-list').html(tHtml);
 
-    // TODO: 最近构建列表（目前后端没有项目维度的 builds 接口，可后续补充）
-    $('#build-list').html('<li class="list-group-item text-muted">请前往构建页面查看</li>');
+    // 最近构建列表
+    $.getJSON('/api/v1/builds?project_id=' + projectId + '&per_page=5', function(r){
+      var bHtml = '';
+      var builds = r.items || [];
+      if(builds.length === 0){
+        bHtml = '<li class="list-group-item text-muted">暂无构建</li>';
+      } else {
+        builds.forEach(function(g){
+          bHtml += '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+            '<span>构建组 #' + g.id + '</span>' +
+            '<span class="badge bg-' + statusColor(g.status) + '">' + g.status + '</span>' +
+          '</li>';
+        });
+      }
+      $('#build-list').html(bHtml);
+    }).fail(function(){
+      $('#build-list').html('<li class="list-group-item text-muted">加载失败</li>');
+    });
   });
 }
 

@@ -28,6 +28,12 @@ def project_detail(project_id):
     return render_template("project_detail.html", project_id=project_id)
 
 
+@views_bp.route("/projects/<int:project_id>/targets/new")
+@login_required
+def target_new(project_id):
+    return render_template("target_new.html", project_id=project_id)
+
+
 @views_bp.route("/builds")
 @login_required
 def builds():
