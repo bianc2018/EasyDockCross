@@ -65,6 +65,7 @@ class BuildTarget(db.Model):
 
     image = db.Column(db.String(255), nullable=False)
     build_command = db.Column(db.Text, nullable=False)
+    build_tool = db.Column(db.String(20), nullable=True)  # cmake / xmake / make / null
     env_vars = db.Column(db.JSON, default=dict)
     artifacts_path = db.Column(db.String(255), nullable=True)
 

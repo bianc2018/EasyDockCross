@@ -39,6 +39,7 @@ def _target_to_dict(target: BuildTarget) -> dict:
         "arch": target.arch,
         "image": target.image,
         "build_command": target.build_command,
+        "build_tool": target.build_tool,
         "env_vars": target.env_vars or {},
         "artifacts_path": target.artifacts_path,
     }
@@ -122,6 +123,7 @@ def create_project():
             arch=t.get("arch"),
             image=t.get("image", ""),
             build_command=t.get("build_command", ""),
+            build_tool=t.get("build_tool"),
             env_vars=t.get("env_vars") or {},
             artifacts_path=t.get("artifacts_path"),
         )
@@ -216,6 +218,7 @@ def create_target(project_id):
         arch=data.get("arch"),
         image=image,
         build_command=build_command,
+        build_tool=data.get("build_tool"),
         env_vars=data.get("env_vars") or {},
         artifacts_path=data.get("artifacts_path"),
     )
@@ -248,6 +251,7 @@ def update_target(target_id):
     target.arch = data.get("arch", target.arch)
     target.image = data.get("image", target.image)
     target.build_command = data.get("build_command", target.build_command)
+    target.build_tool = data.get("build_tool", target.build_tool)
     target.env_vars = data.get("env_vars", target.env_vars)
     target.artifacts_path = data.get("artifacts_path", target.artifacts_path)
     db.session.commit()
@@ -335,6 +339,7 @@ def import_project():
             arch=t.get("arch"),
             image=t.get("image", ""),
             build_command=t.get("build_command", ""),
+            build_tool=t.get("build_tool"),
             env_vars=t.get("env_vars") or {},
             artifacts_path=t.get("artifacts_path"),
         )
