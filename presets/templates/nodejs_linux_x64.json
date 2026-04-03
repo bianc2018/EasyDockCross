@@ -1,0 +1,8 @@
+{
+  "key": "nodejs_linux_x64",
+  "name": "Node.js (Linux x86_64)",
+  "language": "nodejs",
+  "image_base": "dockcross/linux-x64:latest",
+  "build_command": "npm ci && npm run build",
+  "description": "Node.js 项目构建"
+}

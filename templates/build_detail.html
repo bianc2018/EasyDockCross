@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}构建详情 - EasyDockCross{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="/builds">← 返回构建列表</a>
+</div>
+
+<h2>构建组 <span id="group-id">-</span></h2>
+<p class="text-muted">状态: <span class="badge bg-secondary" id="group-status">-</span></p>
+
+<div class="row mt-4">
+  <div class="col-md-8">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header">实时日志</div>
+      <div class="card-body p-0">
+        <div class="log-viewer" id="log-viewer">等待日志...</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header">任务</div>
+      <div class="card-body">
+        <ul class="list-group" id="task-list">
+          <li class="list-group-item text-muted">加载中...</li>
+        </ul>
+      </div>
+    </div>
+    <div class="d-grid gap-2">
+      <button class="btn btn-danger" id="btn-cancel" onclick="cancelGroup()">取消构建</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+var groupId = location.pathname.split('/').pop();
+
+$(function(){
+  loadGroup();
+  // 轮询状态 + 日志
+  setInterval(loadGroup, 3000);
+  // 尝试 WebSocket（如后端已配置）
+  connectWebSocket();
+});
+
+function loadGroup(){
+  $.getJSON('/api/v1/builds/' + groupId, function(g){
+    $('#group-id').text(g.id);
+    $('#group-status').text(g.status).removeClass().addClass('badge bg-' + statusColor(g.status));
+
+    var html = '';
+    if(g.tasks && g.tasks.length){
+      g.tasks.forEach(function(t){
+        html += '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+          '<div>' +
+            '<strong>Target #' + t.target_id + '</strong><br>' +
+            '<small class="text-muted">' + (t.container_id ? t.container_id.substring(0,12) : '-') + '</small>' +
+          '</div>' +
+          '<span class="badge bg-' + statusColor(t.status) + '">' + t.status + '</span>' +
+        '</li>';
+        appendLog(t.output_log || '');
+        appendLog(t.error_log || '', true);
+      });
+    } else {
+      html = '<li class="list-group-item text-muted">无任务</li>';
+    }
+    $('#task-list').html(html);
+
+    if(g.status === 'success' || g.status === 'failed' || g.status === 'cancelled'){
+      $('#btn-cancel').prop('disabled', true).text('构建已结束');
+    }
+  });
+}
+
+function statusColor(s){
+  switch(s){
+    case 'success': return 'success';
+    case 'failed': return 'danger';
+    case 'running': return 'primary';
+    case 'cancelled': return 'warning';
+    default: return 'secondary';
+  }
+}
+
+var lastLogLen = 0;
+function appendLog(text, isError){
+  if(!text) return;
+  // 简单去重：仅追加新内容
+  var viewer = $('#log-viewer');
+  var current = viewer.text();
+  if(text.length > lastLogLen){
+    var add = text.substring(lastLogLen);
+    lastLogLen = text.length;
+    var cls = isError ? 'log-error' : '';
+    var span = $('<span>').addClass(cls).text(add);
+    viewer.append(span);
+    viewer.scrollTop(viewer[0].scrollHeight);
+  }
+}
+
+function cancelGroup(){
+  // 取消第一个running或pending的任务
+  $.getJSON('/api/v1/builds/' + groupId + '/tasks', function(r){
+    var task = (r || []).find(function(t){ return t.status === 'running' || t.status === 'pending'; });
+    if(!task){
+      alert('没有可取消的任务');
+      return;
+    }
+    if(!confirm('确定取消构建任务 #' + task.id + '？')) return;
+    $.post('/api/v1/builds/' + task.id + '/cancel', JSON.stringify({}), function(){
+      alert('已提交取消请求');
+    }).fail(function(xhr){
+      alert('取消失败: ' + (xhr.responseJSON && xhr.responseJSON.error || '未知错误'));
+    });
+  });
+}
+
+function connectWebSocket(){
+  // MVP 中 WebSocket 日志流可先使用轮询，如用户需要再实现 ws 路由
+  // 这里预留 WebSocket 连接代码
+  var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var wsUrl = protocol + '//' + location.host + '/ws/builds/' + groupId + '/log';
+  try {
+    var ws = new WebSocket(wsUrl);
+    ws.onopen = function(){
+      appendLog('[系统] WebSocket 日志连接已建立\n');
+    };
+    ws.onmessage = function(ev){
+      appendLog(ev.data);
+    };
+    ws.onerror = function(){
+      appendLog('[系统] WebSocket 连接失败，已回退到轮询\n');
+    };
+  } catch(e) {
+    // 忽略错误，继续轮询
+  }
+}
+</script>
+{% endblock %}

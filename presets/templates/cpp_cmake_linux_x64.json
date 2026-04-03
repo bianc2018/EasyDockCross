@@ -1,0 +1,8 @@
+{
+  "key": "cpp_cmake_linux_x64",
+  "name": "C++ CMake (Linux x86_64)",
+  "language": "cpp",
+  "image_base": "dockcross/linux-x64:latest",
+  "build_command": "mkdir -p build && cd build && cmake .. && make -j$(nproc)",
+  "description": "C++ 项目使用 CMake 构建"
+}
