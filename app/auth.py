@@ -21,6 +21,8 @@ def login_page():
         if user and bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
             login_user(user, remember=True)
             next_page = request.args.get("next")
+            if next_page and (not next_page.startswith("/") or next_page.startswith("//")):
+                next_page = None
             return redirect(next_page or url_for("views.index"))
         error = "用户名或密码错误"
         status_code = 401

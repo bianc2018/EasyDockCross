@@ -507,6 +507,21 @@ python app.py
 - Docker containers run as non-root user
 - Container resource limits (CPU/memory)
 
+## Testing
+
+- **Run command:** `PYTHONPATH=. .venv/bin/pytest tests/ -v --cov=app --cov-report=term-missing`
+- **Test directory:** `tests/`
+- **Framework:** pytest + pytest-cov
+- **Reference:** See `TESTING.md` for full guide and conventions.
+
+### Test expectations
+- 100% test coverage is the goal — tests make vibe coding safe.
+- When writing new functions, write a corresponding test.
+- When fixing a bug, write a regression test.
+- When adding error handling, write a test that triggers the error.
+- When adding a conditional (if/else), write tests for BOTH paths.
+- Never commit code that makes existing tests fail.
+
 ## Language Note（语言规范）
 
 **所有与本工程相关的会话、回复及文档必须使用中文输出。**

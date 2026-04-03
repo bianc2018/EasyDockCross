@@ -15,6 +15,9 @@ from app.utils import PathResolver
 class DockerBuildClient:
     """Docker 构建客户端：容器生命周期、日志流、产物收集、缓存挂载"""
 
+    DOCKER_CPU_PERIOD = 100000
+    DOCKER_CPU_QUOTA = 100000
+
     def __init__(self):
         self.resolver = PathResolver()
         self.source_manager = SourceManager()
@@ -72,8 +75,8 @@ class DockerBuildClient:
         host_config = self.client.api.create_host_config(
             binds=binds,
             mem_limit=Config.DOCKER_MEM_LIMIT,
-            cpu_period=100000,
-            cpu_quota=100000,
+            cpu_period=self.DOCKER_CPU_PERIOD,
+            cpu_quota=self.DOCKER_CPU_QUOTA,
         )
 
         # 4. 构建命令拆分处理

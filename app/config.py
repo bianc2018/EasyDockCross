@@ -12,9 +12,7 @@ class Config:
 
     # 数据目录
     DATA_DIR = Path(os.environ.get("DATA_DIR", "/var/lib/easydockcross"))
-    if os.environ.get("DATA_DIR") is None and (Path(__file__).resolve().parent.parent / "data").exists():
-        DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-    elif os.environ.get("DATA_DIR") is None:
+    if os.environ.get("DATA_DIR") is None:
         DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)

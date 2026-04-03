@@ -224,6 +224,9 @@ def build_image(image_id):
     if not image.generated_dockerfile:
         return jsonify({"error": "未生成 Dockerfile"}), 400
 
+    if image.status == "building":
+        return jsonify({"error": "镜像正在构建中，请勿重复提交"}), 409
+
     image.status = "building"
     image.build_log = ""
     db.session.commit()

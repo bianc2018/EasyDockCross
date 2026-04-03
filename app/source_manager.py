@@ -35,7 +35,7 @@ class SourceManager:
         if (target_dir / ".git").exists():
             # 更新已有仓库
             subprocess.run(
-                ["git", "-C", str(target_dir), "pull", "origin", project.source_branch or "main"],
+                ["git", "-C", str(target_dir), "pull", "origin", "--", project.source_branch or "main"],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             )
         else:
@@ -44,7 +44,7 @@ class SourceManager:
             cmd = [
                 "git", "clone",
                 "-b", project.source_branch or "main",
-                project.source_url,
+                "--", project.source_url,
                 str(target_dir),
             ]
             subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -54,12 +54,14 @@ class SourceManager:
         target_dir = self.base_dir / str(project.id)
         if not project.source_url:
             raise ValueError("SVN 仓库地址不能为空")
+        if project.source_url.startswith("-"):
+            raise ValueError("非法的 SVN 仓库地址")
 
         if target_dir.exists():
             shutil.rmtree(target_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
         subprocess.run(
-            ["svn", "checkout", project.source_url, str(target_dir)],
+            ["svn", "checkout", "--", project.source_url, str(target_dir)],
             check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
         return target_dir

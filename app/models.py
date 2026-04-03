@@ -44,7 +44,7 @@ class Project(db.Model):
 
     # 关联
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    targets = db.relationship("BuildTarget", backref="project", lazy="dynamic", cascade="all, delete-orphan")
+    targets = db.relationship("BuildTarget", backref="project", lazy="select", cascade="all, delete-orphan")
     build_groups = db.relationship("BuildGroup", backref="project", lazy="dynamic", cascade="all, delete-orphan")
 
     def __repr__(self):
