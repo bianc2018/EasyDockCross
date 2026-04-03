@@ -44,7 +44,7 @@
 <script>
 $(function(){
   $.getJSON('/api/v1/projects', function(r){ $('#stat-projects').text(r.total || 0); });
-  // builds 没有聚合统计接口，暂用页面计数或单独请求
+  $.getJSON('/api/v1/builds', function(r){ $('#stat-builds').text(r.total || 0); });
   $.getJSON('/api/v1/images', function(r){ $('#stat-images').text(r.total || 0); });
 });
 </script>

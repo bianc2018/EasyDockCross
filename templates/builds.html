@@ -28,29 +28,10 @@ $(function(){
 });
 
 function loadBuilds(){
-  // 目前没有独立的 /api/v1/builds 接口，先通过项目列表获取各项目的构建信息
-  // 这里用一个简化方式：列出所有项目，然后将 build_groups 聚合展示
-  $.getJSON('/api/v1/projects', function(r){
-    var projects = r.items || [];
-    var allBuilds = [];
-    var pending = projects.length;
-    if(pending === 0){
-      $('#build-list').html('<tr><td colspan="6" class="text-center text-muted">暂无构建</td></tr>');
-      return;
-    }
-    projects.forEach(function(p){
-      $.getJSON('/api/v1/projects/' + p.id, function(proj){
-        (proj.build_groups || []).forEach(function(g){
-          g.project_name = p.name;
-          allBuilds.push(g);
-        });
-        pending--;
-        if(pending === 0) renderBuilds(allBuilds);
-      }).always(function(){
-        pending--;
-        if(pending === 0) renderBuilds(allBuilds);
-      });
-    });
+  $.getJSON('/api/v1/builds', function(r){
+    renderBuilds(r.items || []);
+  }).fail(function(){
+    $('#build-list').html('<tr><td colspan="6" class="text-center text-muted">加载失败</td></tr>');
   });
 }
 

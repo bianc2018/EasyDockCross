@@ -266,6 +266,42 @@ def trigger_build(project_id):
     return jsonify(_group_to_dict(group)), 201
 
 
+@build_bp.route("/builds", methods=["GET"])
+@login_required
+def list_builds():
+    """获取所有构建组列表（带项目名称）"""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+    project_id = request.args.get("project_id", type=int)
+
+    query = BuildGroup.query.join(Project, BuildGroup.project_id == Project.id)
+    if not current_user.is_admin:
+        query = query.filter(Project.user_id == current_user.id)
+    if project_id:
+        query = query.filter(BuildGroup.project_id == project_id)
+    query = query.order_by(BuildGroup.created_at.desc())
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    items = []
+    for g in pagination.items:
+        items.append({
+            "id": g.id,
+            "project_id": g.project_id,
+            "project_name": g.project.name if g.project else "",
+            "trigger_type": g.trigger_type,
+            "status": g.status,
+            "created_at": g.created_at.isoformat() if g.created_at else None,
+            "completed_at": g.completed_at.isoformat() if g.completed_at else None,
+        })
+    return jsonify({
+        "items": items,
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "page": page,
+        "per_page": per_page,
+    })
+
+
 @build_bp.route("/builds/<int:group_id>", methods=["GET"])
 @login_required
 def get_build_group(group_id):
