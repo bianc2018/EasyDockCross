@@ -2,6 +2,15 @@
 
 All notable changes to EasyDockCross will be documented in this file.
 
+## [0.1.1.0] - 2026-04-04
+
+### Added
+- 新增 232 个单元测试，覆盖核心模块（build、docker_client、image_manager、dependency_check、source_manager、models、utils）
+- 测试覆盖率从 41% 提升至 84%
+
+### Fixed
+- 修复 `app/utils.py` 中 os-release 解析 bug：换行符导致平台检测失败
+
 ## [0.1.0.0] - 2026-04-03
 
 ### Added

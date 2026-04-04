@@ -72,12 +72,9 @@ class TestCollectArtifacts:
             db.session.add(project)
             db.session.commit()
 
-            target = BuildTarget(project_id=project.id, name="linux")
+            target = BuildTarget(project_id=project.id, name="linux", image="img", build_command="cmd")
             db.session.add(target)
             db.session.commit()
-
-            group = MagicMock()
-            group.id = 1
 
             task = BuildTask(
                 project_id=project.id,
@@ -112,7 +109,7 @@ class TestCollectArtifacts:
             db.session.add(project)
             db.session.commit()
 
-            target = BuildTarget(project_id=project.id, name="linux")
+            target = BuildTarget(project_id=project.id, name="linux", image="img", build_command="cmd")
             db.session.add(target)
             db.session.commit()
 
@@ -229,7 +226,7 @@ class TestRunBuild:
             db.session.add(project)
             db.session.commit()
 
-            target = BuildTarget(project_id=project.id, name="linux")
+            target = BuildTarget(project_id=project.id, name="linux", image="img", build_command="cmd")
             db.session.add(target)
             db.session.commit()
 
@@ -264,6 +261,7 @@ class TestRunBuildWithMocks:
         from docker.errors import ImageNotFound
         mock_client.images.get.side_effect = ImageNotFound("Image not found")
         mock_container = MagicMock()
+        mock_container.id = "container123"
         mock_container.logs.return_value = []
         mock_container.wait.return_value = {"StatusCode": 0}
         mock_client.containers.run.return_value = mock_container

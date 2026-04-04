@@ -52,7 +52,7 @@ class PathResolver:
         if self.system == "linux":
             try:
                 with open("/etc/os-release") as f:
-                    lines = {k.strip().lower(): v.strip('"').lower() for line in f if "=" in line for k, v in [line.split("=", 1)]}
+                    lines = {k.strip().lower(): v.strip().strip('"').lower() for line in f if "=" in line for k, v in [line.split("=", 1)]}
                 distro_id = lines.get("id", "unknown")
                 if distro_id in ("ubuntu", "debian"):
                     return "ubuntu_debian"
